@@ -1,8 +1,8 @@
 class TimeIt
   class << self
-    Rec = Struct.new(:name, :parent, :start, :stop, :children)
+    Rec = Struct.new(:name, :parent, :start, :stop, :children, :multis)
 
-    def time_it(name)
+    def time_it(name, multi: false)
       begin_rec(name)
       GC.disable
       start = Time.now
@@ -14,13 +14,15 @@ class TimeIt
     end
 
     def time_all(name)
-      GC.disable
+      name = "#{name}*"
+      if !@rec
+        raise 'time_all must be called within a time_it block'
+      end
       start = Time.now
       yield
     ensure
       stop = Time.now
-      multi[name] += duration2(start, stop)
-      GC.enable unless @rec
+      @rec.multis[name] += duration2(start, stop)
     end
 
     private
@@ -31,8 +33,12 @@ class TimeIt
 
     def begin_rec(name)
       parent = @rec
-      @rec = Rec.new(name, parent, -1, -1, [])
+      @rec = new_rec(name, parent)
       parent.children << @rec if parent
+    end
+
+    def new_rec(name, parent)
+      Rec.new(name, parent, -1, -1, [], Hash.new(0))
     end
 
     def end_rec(start, stop)
@@ -47,16 +53,21 @@ class TimeIt
     end
 
     def report(rec)
-      q = visit_time_it(rec) { |ti, depth| [first_part(ti, depth), duration(ti).to_s] }
+      q = visit_time_it(rec) { |name, duration, depth| [format_name(name, depth), format_duration(duration)] }
       max_name_width = q.map(&:first).map(&:size).max
       max_time_width = q.map(&:last).map(&:size).max
       print_time_it(rec, max_name_width, max_time_width)
     end
 
+    def format_duration(duration)
+      duration.round.to_s
+    end
+
     def visit_time_it(ti, depth=0, &visit)
       [
-          visit.call(ti, depth),
-          *insert_mysteries(ti.children).flat_map { |c| visit_time_it(c, depth+1, &visit) }
+          visit.call(ti.name, duration(ti), depth),
+          *insert_mysteries(ti.children).flat_map { |c| visit_time_it(c, depth+1, &visit) },
+          *ti.multis.map{|(name, duration)| visit.call(name, duration, depth+1)}
       ]
     end
 
@@ -64,7 +75,7 @@ class TimeIt
       return [] if tis.none?
       with_mysteries = tis.drop(1).inject([tis.first]) do |acc, ti|
         if duration2(acc.last.stop, ti.start) >= $time_it_threshold_ms
-          acc << Rec.new('???', ti.parent, acc.last.stop, ti.start, [])
+          acc << new_rec('???', ti.parent)
         end
         acc << ti
       end
@@ -74,12 +85,8 @@ class TimeIt
     def print_time_it(ti, max_name_width, max_time_width)
       total_width = max_name_width + max_time_width + 7
       write('-' * total_width)
-      visit_time_it(ti) do |ti, depth|
-        write(cjust("#{first_part(ti, depth)} ", " #{duration(ti)} ms", total_width, '.'))
-      end
-      write('')
-      multi.each do |k, v|
-        write(cjust("#{k} ", " #{v} ms", total_width, '.'))
+      visit_time_it(ti) do |name, duration, depth|
+        write(cjust("#{format_name(name, depth)} ", " #{format_duration(duration)} ms", total_width, '.'))
       end
       write('-' * total_width)
     end
@@ -97,11 +104,11 @@ class TimeIt
     end
 
     def duration2(start, stop)
-      ((stop - start) * 1000).round
+      (stop - start) * 1000
     end
 
-    def first_part(ti, depth)
-      "#{'  ' * depth}#{ti.name}"
+    def format_name(name, depth)
+      "#{'  ' * depth}#{name}"
     end
   end
 end
