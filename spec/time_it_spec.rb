@@ -14,6 +14,11 @@ describe '::time_it' do
         time_it('d') do
           sleep(0.02)
         end
+        100.times.each do
+          time_all('e') do
+            sleep(0.002)
+          end
+        end
       end
     end
   end

@@ -13,7 +13,21 @@ class TimeIt
       GC.enable unless @rec
     end
 
+    def time_all(name)
+      GC.disable
+      start = Time.now
+      yield
+    ensure
+      stop = Time.now
+      multi[name] += duration2(start, stop)
+      GC.enable unless @rec
+    end
+
     private
+
+    def multi
+      @multi ||= Hash.new(0)
+    end
 
     def begin_rec(name)
       parent = @rec
@@ -28,6 +42,7 @@ class TimeIt
       @rec = @rec.parent
       if @rec.nil?
         report(rec)
+        @multi = nil
       end
     end
 
@@ -62,6 +77,10 @@ class TimeIt
       visit_time_it(ti) do |ti, depth|
         write(cjust("#{first_part(ti, depth)} ", " #{duration(ti)} ms", total_width, '.'))
       end
+      write('')
+      multi.each do |k, v|
+        write(cjust("#{k} ", " #{v} ms", total_width, '.'))
+      end
       write('-' * total_width)
     end
 
@@ -89,6 +108,10 @@ end
 
 def time_it(name, &block)
   TimeIt.time_it(name, &block)
+end
+
+def time_all(name, &block)
+  TimeIt.time_all(name, &block)
 end
 
 $time_it_threshold_ms = 10
