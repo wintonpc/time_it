@@ -37,8 +37,8 @@ class TimeIt
       parent.children << @rec if parent
     end
 
-    def new_rec(name, parent)
-      Rec.new(name, parent, -1, -1, [], Hash.new(0))
+    def new_rec(name, parent, start=-1, stop=-1)
+      Rec.new(name, parent, start, stop, [], Hash.new(0))
     end
 
     def end_rec(start, stop)
@@ -73,22 +73,21 @@ class TimeIt
 
     def insert_mysteries(tis)
       return [] if tis.none?
-      with_mysteries = tis.drop(1).inject([tis.first]) do |acc, ti|
-        if duration2(acc.last.stop, ti.start) >= $time_it_threshold_ms
-          acc << new_rec('???', ti.parent)
-        end
+      tis.drop(1).inject([tis.first]) do |acc, ti|
+        acc << new_rec('???', ti.parent, acc.last.stop, ti.start)
         acc << ti
       end
-      with_mysteries.reject { |ti| duration(ti) < $time_it_threshold_ms }
     end
 
     def print_time_it(ti, max_name_width, max_time_width)
       total_width = max_name_width + max_time_width + 7
-      write('-' * total_width)
+      write('-' * total_width) if $time_it_pretty
       visit_time_it(ti) do |name, duration, depth|
-        write(cjust("#{format_name(name, depth)} ", " #{format_duration(duration)} ms", total_width, '.'))
+        if duration >= $time_it_threshold_ms
+          write(cjust("#{format_name(name, depth)} ", " #{format_duration(duration)} ms", total_width, '.'))
+        end
       end
-      write('-' * total_width)
+      write('-' * total_width) if $time_it_pretty
     end
 
     def write(s)
@@ -123,3 +122,4 @@ end
 
 $time_it_threshold_ms = 10
 $time_it_writer = proc { |s| puts s }
+$time_it_pretty = true
