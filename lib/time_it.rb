@@ -65,18 +65,23 @@ class TimeIt
 
     def visit_time_it(ti, depth=0, &visit)
       [
-          visit.call(ti.name, duration(ti), depth),
-          *insert_mysteries(ti.children).flat_map { |c| visit_time_it(c, depth+1, &visit) },
-          *ti.multis.map{|(name, duration)| visit.call(name, duration, depth+1)}
+        visit.call(ti.name, duration(ti), depth),
+        *insert_mysteries(ti.children).flat_map { |c| visit_time_it(c, depth+1, &visit) },
+        *ti.multis.map{|(name, duration)| visit.call(name, duration, depth+1)}
       ]
     end
 
     def insert_mysteries(tis)
       return [] if tis.none?
-      tis.drop(1).inject([tis.first]) do |acc, ti|
-        acc << new_rec('???', ti.parent, acc.last.stop, ti.start)
-        acc << ti
-      end
+      parent = tis.first.parent
+      [
+        new_rec('???', parent, parent.start, tis.first.start),
+        *tis.drop(1).inject([tis.first]) do |acc, ti|
+          acc << new_rec('???', parent, acc.last.stop, ti.start)
+          acc << ti
+        end,
+        new_rec('???', parent, tis.last.stop, parent.stop)
+      ]
     end
 
     def print_time_it(ti, max_name_width, max_time_width)

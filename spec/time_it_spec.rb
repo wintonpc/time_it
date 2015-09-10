@@ -4,7 +4,7 @@ require 'time_it'
 describe '::time_it' do
   it 'foo' do
     time_it('a') do
-      sleep(0.01)
+      sleep(0.005)
       time_it('b') do
         sleep(0.2)
       end
@@ -20,6 +20,16 @@ describe '::time_it' do
           end
         end
       end
+    end
+  end
+
+  it 'mysteries before and after' do
+    time_it('a') do
+      sleep(0.2)
+      time_it('b') do
+        sleep(0.1)
+      end
+      sleep(0.2)
     end
   end
 end
