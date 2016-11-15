@@ -50,6 +50,40 @@ transform a line into the following hash structure, you're good to go.
 {
   time: ..., # a Time timestamp
   when: ..., # either :start or :end
-  name: ...  # a String describing the work done. "applyRule" in the example above
+  name: ...  # a String describing the work done. "applyRules" in the example above
 }
 ```
+
+## Collect timings with proftab.rb
+
+Writes to a simple tab-separated file.
+
+```
+$ your_program | ruby proftab.rb > a1.tab
+$ your_program | ruby proftab.rb > a2.tab
+$ your_program | ruby proftab.rb > a3.tab
+```
+
+## Average the timings with profmerge.rb
+
+```
+$ ruby profmerge.rb > a?.tab > a.tab
+```
+
+## Compare timings with profcomp.rb
+
+Repeat the above steps with a different build to obtain `b.tab`.
+
+```
+$ ruby profcomp.rb a.tab b.tab
+```
+
+resulting in
+
+```
+applyRules.....................................	   1617	   47%
+...
+...
+```
+
+which indicates that in the `b` build, `applyRules` took 1617ms longer, which was a 47% increase.
