@@ -81,9 +81,9 @@ $ ruby profcomp.rb a.tab b.tab
 resulting in
 
 ```
-applyRules.....................................	   1617	   47%
-...
-...
+applyRules.....................................	   1617   47%
+foo............................................	   xxxx   yy%
+bar............................................	   zzzz   ww%
 ```
 
 which indicates that in the `b` build, `applyRules` took 1617ms longer, which was a 47% increase.
