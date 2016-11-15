@@ -67,7 +67,7 @@ $ your_program | ruby proftab.rb > a3.tab
 ## Average the timings with profmerge.rb
 
 ```
-$ ruby profmerge.rb > a?.tab > a.tab
+$ ruby profmerge.rb a?.tab > a.tab
 ```
 
 ## Compare timings with profcomp.rb
